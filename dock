@@ -1,0 +1,9 @@
+#!/bin/bash
+echo $(pwd)
+docker container run \
+-it \
+--rm \
+--name=model-datasets \
+-v "$(pwd)":/clients \
+louisross/spiking-datasets:1.0 \
+bash
