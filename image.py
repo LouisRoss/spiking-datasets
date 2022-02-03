@@ -61,7 +61,8 @@ def encode_image(image):
   neuron_count = image.shape[0] * image.shape[1]
   if neuron_count not in conversionMap.keys():
     layout_engine = modelLayout('')
-    conversionMap[neuron_count] = layout_engine.layoutSquare(neuron_count, [int(image.shape[0] / 2) - 1, 0, int(image.shape[1] / 2) - 1])
+    #conversionMap[neuron_count] = layout_engine.layoutSquare(neuron_count, [int(image.shape[0] / 2) - 1, 0, int(image.shape[1] / 2) - 1])
+    conversionMap[neuron_count] = layout_engine.layoutRasterSquare([image.shape[0], image.shape[1]], [int(image.shape[0] / 2) - 1, 0, int(image.shape[1] / 2) - 1])
 
   conversion_map = conversionMap[neuron_count]
   for i in range(neuron_count):
@@ -73,7 +74,7 @@ def encode_image(image):
   return buffer
 
 ds = tfds.load('mnist', split='train', as_supervised=True)
-ds = ds.take(20)
+#ds = ds.take(20)
 
 HOST = '192.168.1.142'  # The server's hostname or IP address
 PORT = 8001             # The port used by the server

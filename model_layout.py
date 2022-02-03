@@ -13,6 +13,29 @@ class modelLayout:
     self.modelName = modelName
     self.movement = squareMovement.XINC
 
+  def layoutRasterSquare(self, dimensions, startPosition):
+    maxX, maxZ = dimensions
+    startX, startY, startZ = startPosition
+
+    lowX = maxX / -2
+    highX = maxX / 2
+    if maxX %2 != 0:
+      lowX = (maxX - 1) / -2
+      highX = (maxX + 1) / 2
+
+    lowZ = maxZ / -2
+    highZ = maxZ / 2
+    if maxZ %2 != 0:
+      lowZ = (maxZ - 1) / -2
+      highZ = (maxZ + 1) / 2
+
+    layout = []
+    for z in range(int(lowZ), int(highZ)):
+      for x in range(int(lowX), int(highX)):
+        layout.append([startX + x, startY, startZ + z])
+
+    return layout
+
   def layoutSquare(self, count, startPosition):
     startX, startY, startZ = startPosition
     layout = []
