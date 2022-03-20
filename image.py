@@ -62,7 +62,7 @@ def encode_image(image):
   if neuron_count not in conversionMap.keys():
     layout_engine = modelLayout('')
     #conversionMap[neuron_count] = layout_engine.layoutSquare(neuron_count, [int(image.shape[0] / 2) - 1, 0, int(image.shape[1] / 2) - 1])
-    conversionMap[neuron_count] = layout_engine.layoutRasterSquare([image.shape[0], image.shape[1]], [int(image.shape[0] / 2) - 1, 0, int(image.shape[1] / 2) - 1])
+    conversionMap[neuron_count] = layout_engine.layoutRasterSquare([image.shape[0], image.shape[1]], [int(image.shape[0] / 2), 0, int(image.shape[1] / 2)])
 
   conversion_map = conversionMap[neuron_count]
   for i in range(neuron_count):
