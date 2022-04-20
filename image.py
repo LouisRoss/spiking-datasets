@@ -95,9 +95,12 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     rawbytes = bytearray()
     rawbytes.append(pair_count & 0xff)
     rawbytes.append(pair_count >> 8 & 0xff)
+    rawbytes.append(pair_count >> 16 & 0xff)
+    rawbytes.append(pair_count >> 24 & 0xff)
 
     # WARNING: If buffer is 8192 or greater in length, the resulting packet
     # will exceed 64K bytes, and will overflow the receiving C++ buffer.
+    # NOTE - this may not be true after extending the pair count to 32 bits.
     for spike in buffer:
       rawbytes.append(spike[0] & 0xff)
       rawbytes.append(spike[0] >> 8 & 0xff)

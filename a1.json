@@ -1,0 +1,18 @@
+{
+  "neuronassignments":
+  {
+    "In1": 1,
+    "In2": 2,
+    "I1": 3,
+    "I2": 4,
+    "Inh1": 5,
+    "Inh2": 6,
+    "N1": 7,
+    "N2": 8
+  },
+  "spikepattern": [
+    [0, "In1"],
+    [30, "In2"]
+  ]
+  
+}
