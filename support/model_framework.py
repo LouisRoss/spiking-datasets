@@ -12,22 +12,25 @@ from support.control_manager import ControlManager
 from support.realtime_manager import RealtimeManager
 
 class ModelFramework:
-  def __init__(self, template, expansion, engine_name, engine_period):
+  def __init__(self, engine_name, engine_period, model_name='test', deployment_name='test', template=None, expansion=None):
     print("***** Start of Test")
     print()
 
-    self._model_name = 'test'
+    self._model_name = model_name
+    self._deployment_name = deployment_name
     self._model = None
     self._control_manager = None
-    self._template = template
-    self._expansion = expansion
     self._engine_name = engine_name
     self._engine_period = engine_period
+    self._template = template
+    self._expansion = expansion
     self.results = {}
 
   def __enter__(self):
     self._control_manager = ControlManager(self._engine_name, self._engine_period)
     self._control_manager.connect()
+    self._model = h5model(self._model_name)
+
     return self
 
   def __exit__(self, type, value, traceback):
@@ -40,8 +43,6 @@ class ModelFramework:
         The model is identified with self._model_name.
     """
     print("***** Setup  " + signon)
-
-    self._model = h5model(self._model_name)
 
     print("Creating model '" + self._model.modelName + "'")
     self._model.createModel()
@@ -61,6 +62,14 @@ class ModelFramework:
         Note that the model self._model_name must exist in the repository.
     """
     print("***** Create")
+    if not self._template:
+      print("Cannot create model'" + self._model_name + "', no template data provided")
+      return False
+
+    if not self._expansion:
+      print("Cannot create model'" + self._model_name + "', no expansion data provided")
+      return False
+
     # Calculate the total neurons needed plus the starting offset and count for the population.
     neuronIndexes = {}
     nextIndex = 0
@@ -96,6 +105,7 @@ class ModelFramework:
     else:
       self.results['population'] = self._model.failureReason
     print()
+    return True
 
   def add_deployment(self):
     """ Add a deployment to the model self._model_name.
@@ -108,7 +118,7 @@ class ModelFramework:
     deployment.addDeploymentToModel(self._model_name, [self._engine_name])
     print()
 
-  def deploy(self, log_enable=False, record_enable=True, record_synapse_enable=True):
+  def deploy(self, log_enable=False, record_enable=True, record_synapse_enable=True, record_activation=True, record_hypersensitive=True):
     """ Deploy the model per the deployment with the same name as
         the model, self._model_name.  The model may exist in the repository
         through some manual configuration, or may have been built using the
@@ -131,11 +141,11 @@ class ModelFramework:
       print('Failed send_test_settings with error ' + self._control_manager.response['error'])
       return False
 
-    if not self._control_manager.send_deploy(self._model_name):
+    if not self._control_manager.send_deploy(self._model_name, self._deployment_name):
       print('Failed send_deploy(' + self._model_name + ') with error ' + self._control_manager.response['error'])
       return False
 
-    if not self._control_manager.send_test_setup(log_enable=log_enable, record_enable=record_enable, record_synapse_enable=record_synapse_enable):
+    if not self._control_manager.send_test_setup(log_enable=log_enable, record_enable=record_enable, record_synapse_enable=record_synapse_enable, record_activation=record_activation, record_hypersensitive=record_hypersensitive):
       print('Failed send_test_setup with error ' + self._control_manager.response['error'])
       return False
 

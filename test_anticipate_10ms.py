@@ -6,7 +6,7 @@ from analysis.anticipate_record import AnticipateRun
 
 testEngine = 'Research1'
 testEnginePeriod = 10000
-testEpochs = 5
+testEpochs = 50
 
 @pytest.fixture(scope="session")
 def run():

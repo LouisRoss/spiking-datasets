@@ -45,8 +45,9 @@ class RealtimeManager:
     self.engine = engine
     self.socket = None
 
-    f = open('/configuration/settings.json')
-    self.settings = json.load(f)
+    with open('/configuration/settings.json') as f:
+      self.settings = json.load(f)
+
     self.host = next((e["host"] for e in self.settings["engines"] if e["name"] == engine), None)
     self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 

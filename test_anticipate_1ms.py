@@ -9,7 +9,7 @@ testEpochs = 50
 
 @pytest.fixture(scope="session")
 def run():
-  runner = AnticipateRunner(testEngine, testEnginePeriod, [80, 80], log_enable=False, record_enable=False, record_synapse_enable=False)
+  runner = AnticipateRunner(testEngine, testEnginePeriod, [80, 80], log_enable=False, record_enable=False, record_synapse_enable=False, record_hypersensitive=False)
   runner.run(testEpochs)
   return runner
 

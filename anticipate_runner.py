@@ -69,7 +69,7 @@ def stepAndRepeat(singleExpansion, singleSpikePattern, step, repeat):
   return fullExpansion, fullSpikePattern
 
 class AnticipateRunner:
-  def __init__(self, engineName, enginePeriod, dimensions, log_enable=False, record_enable=True, record_synapse_enable=True):
+  def __init__(self, engineName, enginePeriod, dimensions, log_enable=False, record_enable=True, record_synapse_enable=True, record_activation=True, record_hypersensitive=True):
     self.title = 'Test 1.  The Anticipate test.'
     self.engineName = engineName
     self.enginePeriod = enginePeriod
@@ -78,16 +78,18 @@ class AnticipateRunner:
     self.log_enable = log_enable
     self.record_enable = record_enable
     self.record_synapse_enable = record_synapse_enable
+    self.record_activation = record_activation
+    self.record_hypersensitive = record_hypersensitive
 
   def run(self, iterations):
     step = 10
     patternCount = math.floor(self.neuronCount / step)
     fullExpansion, fullSpikePattern = stepAndRepeat(expansion, spikePattern, step, patternCount)
-    with ModelFramework(template, fullExpansion, self.engineName, self.enginePeriod) as model:
+    with ModelFramework(self.engineName, self.enginePeriod, 'test', 'test', template, fullExpansion) as model:
       model.setup(self.title)
       model.create()
       model.add_deployment()
-      model.deploy(log_enable=self.log_enable, record_enable=self.record_enable, record_synapse_enable=self.record_synapse_enable)
+      model.deploy(log_enable=self.log_enable, record_enable=self.record_enable, record_synapse_enable=self.record_synapse_enable, record_activation=self.record_enable, record_hypersensitive=self.record_hypersensitive)
       model.send_spikes(model.generate_spike_sequence(fullSpikePattern, iterations))
       model.run_for_ticks(200 + iterations * 100)
       self.measurements = model.undeploy()

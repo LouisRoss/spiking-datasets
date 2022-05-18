@@ -21,8 +21,9 @@ class ControlManager:
     self.query = {}
     self.response = {}
 
-    f = open('/configuration/settings.json')
-    self.settings = json.load(f)
+    with open('/configuration/settings.json') as f:
+      self.settings = json.load(f)
+      
     self._host = next((e["host"] for e in self.settings["engines"] if e["name"] == engine), None)
     self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -32,8 +33,10 @@ class ControlManager:
   def close(self):
     self._socket.close()
 
-  def send_deploy(self, model):
-    query = { "query": 'deploy', "model": model, "deployment": model, "engine": self._engine }
+  def send_deploy(self, model, deployment=None):
+    if not deployment:
+      deployment = model
+    query = { "query": 'deploy', "model": model, "deployment": deployment, "engine": self._engine }
     print("Sending deploy command: " + json.dumps(query))
     return self._transact(query, lambda query, response: 'query' in query and query['query'] == 'deploy' and 'result' in response and response['result'] == 'ok')
 
@@ -47,8 +50,8 @@ class ControlManager:
     print("Sending test settings command: " + json.dumps(control))
     return self._transact(control, lambda query, response: 'query' in query and query['query'] == 'settings' and 'result' in response and response['result'] == 'ok')
 
-  def send_test_setup(self, log_enable=False, record_enable=False, record_synapse_enable=False):
-    control = { "query": 'control', "values": { "logenable": log_enable, "recordenable": record_enable, "recordsynapses": record_synapse_enable, "engineperiod": self._enginePeriod, "loglevel": 0 } }
+  def send_test_setup(self, log_enable=False, record_enable=False, record_synapse_enable=False, record_activation=False, record_hypersensitive=False):
+    control = { "query": 'control', "values": { "logenable": log_enable, "recordenable": record_enable, "recordsynapses": record_synapse_enable, "recordactivation": record_activation, "recordhypersensitive": record_hypersensitive, "engineperiod": self._enginePeriod, "loglevel": 0 } }
     print("Sending test setup command: " + json.dumps(control))
     return self._transact(control, lambda query, response: 
       'query' in query and query['query'] == 'control' and 
