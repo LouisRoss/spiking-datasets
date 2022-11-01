@@ -6,7 +6,7 @@ docker container run \
 --name=model-datasets \
 -v "$(pwd)":/clients \
 -v "$(pwd)/../spiking-model-configuration/configuration/:/configuration" \
--v "/media/louis/Elements1/spiking-model-templates/:/templates" \
--v /media/louis/seagate8T/record:/record \
+-v "/media/elements/spiking-model-templates/:/templates" \
+-v /mnt/record:/record \
 louisross/spiking-datasets:1.0 \
 bash

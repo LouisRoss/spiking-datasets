@@ -8,19 +8,77 @@ import math
 """
 
 from support.model_framework import ModelFramework
+from support.model_manager import ModelManager
 
 template = {
-  "method": "projection",
+  "method": "explicit",
   "neurons": [
     {
       "name": "input",
-      "dims": [10, 10],
+      "dims": [2, 1],
       "height": 0,
+      "import": 0.2,
+      "export": 0.0
+    },
+    {
+      "name": "I",
+      "dims": [2, 1],
+      "height": 10,
+      "import": 0.2,
+      "export": 0.0
+    },
+    {
+      "name": "inhibit",
+      "dims": [2, 1],
+      "height": 20,
+      "import": 0.2,
+      "export": 0.0
+    },
+    {
+      "name": "N",
+      "dims": [2, 1],
+      "height": 30,
       "import": 0.2,
       "export": 0.0
     }
   ],
-  "policies": []
+  "policies": [
+    {
+      "type": "Excitatory", "source": "input", "target": "I",
+      "expansion": [
+        [0, 0, 1.02],
+        [1, 1, 1.02]
+      ]
+    },
+    {
+      "type": "Excitatory", "source": "I", "target": "N",
+      "expansion": [
+        [0, 0, 1.02],
+        [1, 1, 1.02]
+      ]
+    },
+    {
+      "type": "Excitatory", "source": "N", "target": "N", 
+      "expansion": [
+        [0, 1, 0.5],
+        [1, 0, 0.5]
+      ]
+    },
+    {
+      "type": "Excitatory", "source": "N", "target": "inhibit",
+      "expansion": [
+        [0, 0, 1.02],
+        [1, 1, 1.02]
+      ]
+    },
+    {
+      "type": "Inhibitory", "source": "inhibit", "target": "I", 
+      "expansion": [
+        [0, 0, 1.02],
+        [1, 1, 1.02]
+      ]
+    }
+  ]
 }
 
 class NeuronAssignments:
@@ -32,6 +90,44 @@ class NeuronAssignments:
   Inh2 = 6
   N1 = 7
   N2 = 8
+
+
+template_unified = {
+  "neurons": [
+    {
+      "name": "all",
+      "dims": [10, 1],
+      "height": 0,
+      "import": 0.2,
+      "export": 0.0
+    }
+  ],
+  "policies": [
+    {
+      "method": "explicit",
+      "type": "Excitatory", "source": "all", "target": "all",
+      "expansion": [
+        [NeuronAssignments.In1,  NeuronAssignments.I1,   1.02],
+        [NeuronAssignments.I1,   NeuronAssignments.N1,   1.02],
+        [NeuronAssignments.In2,  NeuronAssignments.I2,   1.02],
+        [NeuronAssignments.I2,   NeuronAssignments.N2,   1.02],
+        [NeuronAssignments.N1,   NeuronAssignments.N2,   0.50],
+        [NeuronAssignments.N2,   NeuronAssignments.N1,   0.50],
+        [NeuronAssignments.N1,   NeuronAssignments.Inh1, 1.02],
+        [NeuronAssignments.N2,   NeuronAssignments.Inh2, 1.02]
+      ]
+    },
+    {
+      "method": "explicit",
+      "type": "Inhibitory", "source": "all", "target": "all", 
+      "expansion": [
+        [NeuronAssignments.Inh1, NeuronAssignments.I1,   1.02],
+        [NeuronAssignments.Inh2, NeuronAssignments.I2,   1.02]
+      ]
+    }
+  ]
+}
+
 
 expansion = [
     [NeuronAssignments.In1,  NeuronAssignments.I1,   1.02, 0],
@@ -51,30 +147,40 @@ spikePattern = [
   [30, NeuronAssignments.In2]
 ]
 
-def stepAndRepeat(singleExpansion, singleSpikePattern, step, repeat):
-  """ Given a single instance of the expansion pattern and corresponding spike patter, 
+engines = [{ 'name': 'Research1', 'period': 1000}, { 'name': 'Research4', 'period': 1000}]
+
+def stepAndRepeat(singleSpikePattern, step, repeat):
+  """ Given a single instance of the expansion pattern and corresponding spike pattern, 
       plus the stepping distance between patterns and a repeat count,
       copy the expansion pattern to the 'repeat' number of
       places, separated by 'step' indices.
   """
-  fullExpansion = []
   fullSpikePattern = []
   for i in range(repeat):
     offset = i * step
-    for expansionValue in singleExpansion:
-      fullExpansion.append([expansionValue[0] + offset, expansionValue[1] + offset, expansionValue[2], expansionValue[3]])
     for spikePattern in singleSpikePattern:
       fullSpikePattern.append([spikePattern[0], spikePattern[1] + offset])
 
-  return fullExpansion, fullSpikePattern
+  return fullSpikePattern
 
+def templateNeuronCount(template):
+    totalCount = 0
+    populations = template["neurons"]
+    for population in populations:
+      count = 1
+      for dim in population["dims"]:
+        count *= dim
+      totalCount += count
+    
+    return totalCount
+  
 class AnticipateRunner:
-  def __init__(self, engineName, enginePeriod, dimensions, log_enable=False, record_enable=True, record_synapse_enable=True, record_activation=True, record_hypersensitive=True):
-    self.title = 'Test 1.  The Anticipate test.'
-    self.engineName = engineName
-    self.enginePeriod = enginePeriod
-    template['neurons'][0]['dims'] = dimensions
-    self.neuronCount = dimensions[0] * dimensions[1]
+  def __init__(self, engines, log_enable=False, record_enable=True, record_synapse_enable=True, record_activation=True, record_hypersensitive=True):
+    #self.title = 'Test 1.  The Anticipate test.'
+    self._template = template    # Modify this manually to change templates.
+    self._engines = engines
+    #template['neurons'][0]['dims'] = dimensions
+    #self.neuronCount = dimensions[0] * dimensions[1]
     self.log_enable = log_enable
     self.record_enable = record_enable
     self.record_synapse_enable = record_synapse_enable
@@ -82,17 +188,24 @@ class AnticipateRunner:
     self.record_hypersensitive = record_hypersensitive
 
   def run(self, iterations):
-    step = 10
-    patternCount = math.floor(self.neuronCount / step)
-    fullExpansion, fullSpikePattern = stepAndRepeat(expansion, spikePattern, step, patternCount)
-    with ModelFramework(self.engineName, self.enginePeriod, 'test', 'test', template, fullExpansion) as model:
-      model.setup(self.title)
-      model.create()
-      model.add_deployment()
+    step = templateNeuronCount(self._template)
+    fullSpikePattern = stepAndRepeat(spikePattern, step, len(self._engines))
+    #with ModelFramework(self.engineName, self.enginePeriod, 'test', 'test', template, fullExpansion) as model:
+    with ModelManager(self._engines, model_name='test', deployment_name='test') as model:
+      #model.setup(self.title)
+      model.write_template_file(template, 'testTemplate')
+      model.create_model()
+
+      templates = []
+      for templateNumber in range(len(self._engines)):
+        templates.append('anticipate' + str(templateNumber) + '/testTemplate')
+      model.apply_templates_to_model(templates)
+
+      model.create_deployment()
       model.deploy(log_enable=self.log_enable, record_enable=self.record_enable, record_synapse_enable=self.record_synapse_enable, record_activation=self.record_enable, record_hypersensitive=self.record_hypersensitive)
       model.send_spikes(model.generate_spike_sequence(fullSpikePattern, iterations))
       model.run_for_ticks(200 + iterations * 100)
       self.measurements = model.undeploy()
-      model.teardown()
+      model.delete_model()
       
       self.results = model.results

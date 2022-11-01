@@ -4,7 +4,7 @@ import time
 from anticipate_runner import AnticipateRunner,NeuronAssignments
 from analysis.anticipate_record import AnticipateRun
 
-testEngine = 'Research1'
+testEngine = 'Research4'
 testEnginePeriod = 10000
 testEpochs = 50
 

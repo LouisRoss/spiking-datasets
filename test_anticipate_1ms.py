@@ -4,12 +4,12 @@ from anticipate_runner import AnticipateRunner
 from analysis.anticipate_record import AnticipateEvent
 
 testEngine = 'Research1'
-testEnginePeriod = 1000
+testEnginePeriod = 300
 testEpochs = 50
 
 @pytest.fixture(scope="session")
 def run():
-  runner = AnticipateRunner(testEngine, testEnginePeriod, [80, 80], log_enable=False, record_enable=False, record_synapse_enable=False, record_hypersensitive=False)
+  runner = AnticipateRunner(testEngine, testEnginePeriod, [100, 100], log_enable=False, record_enable=False, record_synapse_enable=False, record_hypersensitive=False)
   runner.run(testEpochs)
   return runner
 
