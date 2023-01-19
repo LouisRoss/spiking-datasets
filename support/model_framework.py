@@ -138,7 +138,7 @@ class ModelFramework:
     """
     print("***** Deploying model")
     if not self._control_manager.send_test_settings():
-      print('Failed send_test_settings with error ' + self._control_manager.response['error'])
+      print('Failed send_test_settings with error ' + self._control_manager.response['errordetail'])
       return False
 
     if not self._control_manager.send_deploy(self._model_name, self._deployment_name):
@@ -146,7 +146,7 @@ class ModelFramework:
       return False
 
     if not self._control_manager.send_test_setup(log_enable=log_enable, record_enable=record_enable, record_synapse_enable=record_synapse_enable, record_activation=record_activation, record_hypersensitive=record_hypersensitive):
-      print('Failed send_test_setup with error ' + self._control_manager.response['error'])
+      print('Failed send_test_setup with error ' + self._control_manager.response['errordetail'])
       return False
 
     if not self._control_manager.send_test_start():

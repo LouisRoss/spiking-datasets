@@ -59,14 +59,23 @@ class RealtimeManager:
     self.socket.close()
     return True   # Suppress propagation of any exception that occurred in the caller.
 
-  def SendSpikes(self, spikes):
+  def SendSpikes(self, spikes, population_index = 0, layeroffset = 0):
     pair_count = len(spikes)
-    print('Spikes buffer contains ' + str(pair_count) + ' spikes')
+    byte_count = 8 + pair_count * 8   # Not counting the 4-byte byte count header.
+    print('Spikes buffer contains ' + str(pair_count) + ' spikes, ' + str(byte_count) + ' bytes')
     rawbytes = bytearray()
-    rawbytes.append(pair_count & 0xff)
-    rawbytes.append(pair_count >> 8 & 0xff)
-    rawbytes.append(pair_count >> 16 & 0xff)
-    rawbytes.append(pair_count >> 24 & 0xff)
+    rawbytes.append(byte_count & 0xff)
+    rawbytes.append(byte_count >> 8 & 0xff)
+    rawbytes.append(byte_count >> 16 & 0xff)
+    rawbytes.append(byte_count >> 24 & 0xff)
+    rawbytes.append(population_index & 0xff)
+    rawbytes.append(population_index >> 8 & 0xff)
+    rawbytes.append(population_index >> 16 & 0xff)
+    rawbytes.append(population_index >> 24 & 0xff)
+    rawbytes.append(layeroffset & 0xff)
+    rawbytes.append(layeroffset >> 8 & 0xff)
+    rawbytes.append(layeroffset >> 16 & 0xff)
+    rawbytes.append(layeroffset >> 24 & 0xff)
 
     # WARNING: If buffer is 8192 or greater in length, the resulting packet
     # will exceed 64K bytes, and will overflow the receiving C++ buffer.
@@ -82,17 +91,31 @@ class RealtimeManager:
       rawbytes.append(spike[1] >> 16 & 0xff)
       rawbytes.append(spike[1] >> 24 & 0xff)
 
-    self.socket.sendall(rawbytes)
+    try:
+      if self.socket.sendall(rawbytes) is None:
+        return True
+    except Exception:
+      print('Exception sending spikes')
+      return False
 
   def make_spike_packet(self, spikes):
     pair_count = len(spikes)
-    print(f'Spikes buffer contains {pair_count:d} spikes')
+    byte_count = 8 + pair_count * 8   # Not counting the 4-byte byte count header.
+    print('Spikes buffer contains ' + str(pair_count) + ' spikes, ' + str(byte_count) + ' bytes')
 
     rawbytes = bytearray()
-    rawbytes.append(pair_count & 0xff)
-    rawbytes.append(pair_count >> 8 & 0xff)
-    rawbytes.append(pair_count >> 16 & 0xff)
-    rawbytes.append(pair_count >> 24 & 0xff)
+    rawbytes.append(byte_count & 0xff)
+    rawbytes.append(byte_count >> 8 & 0xff)
+    rawbytes.append(byte_count >> 16 & 0xff)
+    rawbytes.append(byte_count >> 24 & 0xff)
+    rawbytes.append(population_index & 0xff)
+    rawbytes.append(population_index >> 8 & 0xff)
+    rawbytes.append(population_index >> 16 & 0xff)
+    rawbytes.append(population_index >> 24 & 0xff)
+    rawbytes.append(layeroffset & 0xff)
+    rawbytes.append(layeroffset >> 8 & 0xff)
+    rawbytes.append(layeroffset >> 16 & 0xff)
+    rawbytes.append(layeroffset >> 24 & 0xff)
 
     # WARNING: If buffer is 8192 or greater in length, the resulting packet
     # will exceed 64K bytes, and will overflow the receiving C++ buffer.

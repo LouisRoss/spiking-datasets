@@ -110,7 +110,8 @@ fullSpikePattern = [
 testName = 'hypertest'
 iterations = 1
 measurements = None
-engines = [{ 'name': 'Research1', 'period': 1000}, { 'name': 'Research4', 'period': 1000}]
+###engines = [{ 'name': 'Research4', 'period': 1000}, { 'name': 'Research4', 'period': 1000}]
+engines = [{ 'name': 'Research4.lan', 'period': 1000}]
 
 def prepareSpikePattern(model):
   global trainingSpikePattern

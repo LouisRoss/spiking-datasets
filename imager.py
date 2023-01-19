@@ -82,7 +82,7 @@ def run_image(rawbytes):
   global measurements
   global results
 
-  with ModelFramework('Research1', 10000, 'mnist-2', 'normal') as model:
+  with ModelFramework('Research4.lan', 10000, 'mnist-2', 'normal') as model:
     model.deploy(log_enable=False, record_enable=True, record_synapse_enable=True, record_activation=True, record_hypersensitive=True)
     for i in range(20):
       model.send_spikes(rawbytes)

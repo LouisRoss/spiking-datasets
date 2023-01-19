@@ -30,6 +30,7 @@ class ModelManager:
     self._host = self._configuration['services']['modelPackager']['host']
     self._port = self._configuration['services']['modelPackager']['port']
     self._model_base_url = self._host + ":" + self._port
+    self.results = {}
 
   def __enter__(self):
     for engine in self._engines:
@@ -48,6 +49,7 @@ class ModelManager:
   def write_template_file(self, template, template_name):
     with open(ModelManager.templateStoragePath + template_name + '.json', 'w') as template_file:
       json.dump(template, template_file)
+    self.results['template'] = 'success'
 
   def create_model(self):
     full_url = self._model_base_url + '/model/' + self._model_name
@@ -57,9 +59,11 @@ class ModelManager:
     print(response.status_code)
     #print()
     if response.status_code != 200:
+        self.results['setup'] = self._model.failureReason
         return False
 
     self.poll_complete(response)
+    self.results['setup'] = 'success'
     return True
 
 
@@ -91,9 +95,11 @@ class ModelManager:
     print(response.status_code)
     #print()
     if response.status_code != 200:
+        self.results['expansion'] = self._model.failureReason
         return False
 
     self.poll_complete(response)
+    self.results['expansion'] = 'success'
     return True
 
 
@@ -146,41 +152,38 @@ class ModelManager:
                                modified on a running model, such as log enable,
                                record enable, and engine period.
     """
-    results = []
+    self.results['deploy'] = 'success'
+    success = True
     for manager in self._control_managers:
       print("***** Deploying model")
       if not manager.send_test_settings():
-        print('Failed send_test_settings to engine ' + manager._engine + '(' + manager._host + ') with error ' + manager.response['error'])
-        results.append(manager.response['error'])
-        continue
-      else:
-        results.append('ok')
+        print('Failed send_test_settings to engine ' + manager._engine + '(' + manager._host + ') with error ' + manager.response['errordetail'])
+        self.results['deploy'] = manager.response['errordetail']
+        success = False
+        break
 
       if not manager.send_deploy(self._model_name, self._deployment_name):
-        print('Failed send_deploy(' + self._model_name + ') to engine ' + manager._engine + '(' + manager._host + ') with error ' + self._control_manager.response['error'])
-        results.append(manager.response['error'])
-        continue
-      else:
-        results.append('ok')
+        print('Failed send_deploy(' + self._model_name + ') to engine ' + manager._engine + '(' + manager._host + ') with error ' + self._control_manager.response['errordetail'])
+        self.results['deploy'] = manager.response['errordetail']
+        success = False
+        break
 
       if not manager.send_test_setup(log_enable=log_enable, record_enable=record_enable, record_synapse_enable=record_synapse_enable, record_activation=record_activation, record_hypersensitive=record_hypersensitive):
-        print('Failed send_test_setup to engine ' + manager._engine + '(' + manager._host + ') with error ' + self._control_manager.response['error'])
-        results.append(manager.response['error'])
-        continue
-      else:
-        results.append('ok')
+        print('Failed send_test_setup to engine ' + manager._engine + '(' + manager._host + ') with error ' + manager.response['errordetail'])
+        self.results['deploy'] = manager.response['errordetail']
+        success = False
+        break
 
       if not manager.send_test_start():
-        print('Failed send_test_start to engine ' + manager._engine + '(' + manager._host + ') with error ' + self._control_manager.response['error'])
-        results.append(manager.response['error'])
-        continue
-      else:
-        results.append('ok')
+        print('Failed send_test_start to engine ' + manager._engine + '(' + manager._host + ') with error ' + manager.response['errordetail'])
+        self.results['deploy'] = manager.response['errordetail']
+        success = False
+        break
 
       print("Recording into " +  manager.response['status']['recordfile'])
       print()
 
-    return True
+    return success
 
   def get_frequency_map(self):
     if (ModelManager.frequencyMap == None):
@@ -234,17 +237,27 @@ class ModelManager:
         spikes.append([spike[0] + tick, spike[1]])
       tick += pitch
 
+    print("Single spike pattern, spike sequence:")
+    print(pattern)
+    print(spikes)
     return spikes
 
   def send_spikes(self, spikes):
     """ Send the spike sequence to a single engine, to be
         executed per the embedded spike ticks.
     """
+    self.results['sendspikes'] = 'success'
+    success = True
     print("***** Sending test spikes to engine")
     for engine in self._engines:
       with RealtimeManager(engine['name']) as realtimeManager:
-        realtimeManager.SendSpikes(spikes)
+        if not realtimeManager.SendSpikes(spikes):
+          self.results['sendspikes'] = 'failed to send ' + str(len(spikes)) + ' spikes to engine ' + engine['name']
+          success = False
+          break
       print()
+    
+    return success
 
   def run_for_ticks(self, tickCount):
     """ Allow the model to run until the returned status

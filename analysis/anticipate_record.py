@@ -12,6 +12,9 @@ class AnticipateAdjustment:
     self.synapse_index = synapse
     self.synapse_strength = strength
 
+  def print(self):
+    print('        Adjustment to neuron/synapse' + str(self.neuron_index) + '/' + str(self.synapse_index) + ' to strength ' + str(self.synapse_strength))
+
 class AnticipateEvent:
   def __init__(self, row=None):
     if row:
@@ -36,6 +39,11 @@ class AnticipateEvent:
                      seconds=self.datetime.second, 
                      microseconds=round(self.nanosecond/1000))
 
+  def print(self):
+    print('      Event type ' + str(self.type) + ' for neuron ' + str(self.neuron_index) + ' at tick ' + str(self.tick) + ' with ' + str(len(self.synapse_adjustments)) + ' adjustments')
+    for adjustment in self.synapse_adjustments:
+      adjustment.print()
+
 class AnticipateEpoch:
   def __init__(self, row):
     self.events = []
@@ -50,25 +58,48 @@ class AnticipateEpoch:
       self.last_event = AnticipateEvent(row)
       self.events.append(self.last_event)
 
+  def print(self):
+    print('    Epoch has ' + str(len(self.events)) + ' events')
+    for event in self.events:
+      event.print()
+
 
 class AnticipateRun:
-  def __init__(self, filename, epoch_index):
-    self.epochs = []
-    epoch = None
-    with open(filename, newline='') as recordFile:
-      reader = csv.DictReader(recordFile)
-      for row in reader:
-        if int(row['Neuron-Index']) == epoch_index and int(row['Neuron-Event-Type']) == EventTypes.Spike_Event:
-          if epoch:
-            self.epochs.append(epoch)
-            epoch = None
-          epoch = AnticipateEpoch(row)
-        else:
-          if epoch:
-            epoch.add_event(row)
+  record_path = '/record/test/test/{engineName}/ModelEngineRecord.csv'
 
-    if epoch:
-      self.epochs.append(epoch)
+  def __init__(self, engines, epoch_index):
+    self.engines = [engine['name'] for engine in engines]
+    self.records = []
+
+    for engine in self.engines:
+      epoch = None
+      epochs = []
+      filename = self.record_path.format(engineName = engine)
+      print('Analyzing reccord file at ' + filename)
+
+      with open(filename, newline='') as recordFile:
+        reader = csv.DictReader(recordFile)
+        for row in reader:
+          if int(row['Neuron-Index']) == epoch_index and int(row['Neuron-Event-Type']) == EventTypes.Spike_Event:
+            if epoch:
+              epochs.append(epoch)
+              epoch = None
+            epoch = AnticipateEpoch(row)
+          else:
+            if epoch:
+              epoch.add_event(row)
+
+      if epoch:
+        epochs.append(epoch)
+
+      self.records.append(epochs)
+
+  def print(self):
+    print('AnticipateRun object has ' + str(len(self.records)) + ' record files')
+    for epochs in self.records:
+      print('  Record has ' + str(len(epochs)) + ' epochs')
+      for epoch in epochs:
+        epoch.print()
 
 
 #run = AnticipateRun('/media/louis/seagate8T/record/test/test/Research1/ModelEngineRecord.csv', 1)
