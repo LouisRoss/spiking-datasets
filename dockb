@@ -1,2 +1,2 @@
 #!/bin/bash
-docker image build -t louisross/spiking-datasets:1.0 .
+docker image build -t louisross/spiking-datasets:1.1 .

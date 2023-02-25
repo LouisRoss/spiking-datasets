@@ -1,23 +1,26 @@
-import math
+from re import X
 
-""" Test 1.  The simple anticipate test.
-    Configure a small microcircuit with inputs I1 and I2,
-    and outputs N1 and N2.  I1 always precedes I2 by a few
-    milliseconds.  Show that the network adapts so that output
-    N2 anticiaptes input I2, even if it does not occur.
-"""
-
+from anticipate_data import template, spikePattern, NeuronAssignments
+from support.model_utilities import templateNeuronCount, stepAndRepeat, extract_monitor_neurons
+from support.configuration import Configuration
 from support.model_manager import ModelManager
-from anticipate_data import template, spikePattern
-from support.model_utilities import templateNeuronCount, stepAndRepeat
+from clean_record import Cleaner
+from plot_record import plot_cleaned_run,plot_epochs
 
-class AnticipateRunner:
-  def __init__(self, engines, log_enable=False, record_enable=True, record_synapse_enable=True, record_activation=True, record_hypersensitive=True):
-    #self.title = 'Test 1.  The Anticipate test.'
+engines_1 = [{ 'name': 'Research1.lan', 'period': 10000}]
+engines_4 = [{ 'name': 'Research4.lan', 'period': 10000}]
+engines_1_4 = [{ 'name': 'Research1.lan', 'period': 10000}, { 'name': 'Research4.lan', 'period': 10000}]
+
+monitor_no_in = { 'I1', 'I2', 'Inh1', 'Inh2', 'N1', 'N2' }
+
+
+class Anticipate:
+  def __init__(self, engines,  model='test', deployment='test', log_enable=False, record_enable=True, record_synapse_enable=True, record_activation=True, record_hypersensitive=True):
     self._template = template    # Modify this manually to change templates.
     self.engines = engines
-    #template['neurons'][0]['dims'] = dimensions
-    #self.neuronCount = dimensions[0] * dimensions[1]
+    self.model = model
+    self.deployment = deployment
+    self.configuration = Configuration(self.model, self.deployment)
     self.log_enable = log_enable
     self.record_enable = record_enable
     self.record_synapse_enable = record_synapse_enable
@@ -27,9 +30,7 @@ class AnticipateRunner:
   def run(self, iterations):
     step = templateNeuronCount(self._template)
     fullSpikePattern = stepAndRepeat(spikePattern, step, len(self.engines))
-    #with ModelFramework(self.engineName, self.enginePeriod, 'test', 'test', template, fullExpansion) as model:
-    with ModelManager(self.engines, model_name='test', deployment_name='test') as model:
-      #model.setup(self.title)
+    with ModelManager(self.engines, model_name=self.model, deployment_name=self.deployment) as model:
       model.write_template_file(template, 'testTemplate')
       model.create_model()
 
@@ -52,3 +53,16 @@ class AnticipateRunner:
       model.delete_model()
       
       self.results = model.results
+
+    if 'sendspikes' in self.results and self.results['sendspikes'] == 'success':
+      if self.record_enable:
+        self.plot()
+
+  def plot(self):
+    is_trigger = lambda sample: sample['Neuron-Event-Type'] == 2 and sample['Neuron-Index'] == 0
+    cleaner = Cleaner(self.configuration, extract_monitor_neurons(NeuronAssignments, monitor_no_in), is_trigger)
+    cleaner.clean_data()
+
+    plot_cleaned_run(self.configuration)
+    plot_epochs(self.configuration)
+

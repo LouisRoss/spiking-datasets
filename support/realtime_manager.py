@@ -98,7 +98,7 @@ class RealtimeManager:
       print('Exception sending spikes')
       return False
 
-  def make_spike_packet(self, spikes):
+  def make_spike_packet(self, spikes, population_index = 0, layeroffset = 0):
     pair_count = len(spikes)
     byte_count = 8 + pair_count * 8   # Not counting the 4-byte byte count header.
     print('Spikes buffer contains ' + str(pair_count) + ' spikes, ' + str(byte_count) + ' bytes')

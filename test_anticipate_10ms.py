@@ -1,7 +1,8 @@
 from re import X
 import pytest
 import time
-from anticipate_runner import AnticipateRunner,NeuronAssignments
+from anticipate_runner import AnticipateRunner
+from anticipate_data import NeuronAssignments
 from analysis.anticipate_record import AnticipateRun
 
 engines_1 = [{ 'name': 'Research1.lan', 'period': 10000}]
