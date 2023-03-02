@@ -45,7 +45,8 @@ class AnticipateEvent:
       adjustment.print()
 
 class AnticipateEpoch:
-  def __init__(self, row):
+  def __init__(self, engine_name, row):
+    self.engine_name = engine_name
     self.events = []
     self.last_event = None
     self.add_event(row)
@@ -68,7 +69,7 @@ class AnticipateRun:
   record_path = '/record/test/test/{engineName}/ModelEngineRecord.csv'
 
   def __init__(self, engines, epoch_index):
-    self.engines = [engine['name'] for engine in engines]
+    self.engines = engines
     self.records = []
 
     for engine in self.engines:
@@ -84,7 +85,7 @@ class AnticipateRun:
             if epoch:
               epochs.append(epoch)
               epoch = None
-            epoch = AnticipateEpoch(row)
+            epoch = AnticipateEpoch(engine, row)
           else:
             if epoch:
               epoch.add_event(row)
