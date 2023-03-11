@@ -241,18 +241,73 @@ class ModelManager:
     print(pattern)
     print(spikes)
     return spikes
+  
+  def get_deployment_map(self):
+    """ Request the population map and deployment for self's
+        model and deployment, and build an array containing
+        [
+          { 'engine': engine1, 'offset': start_of_engine1_neurons, 'count': Neuron_count_in_engine1 },
+          { 'engine': engine2, 'offset': start_of_engine2_neurons, 'count': Neuron_count_in_engine2 },
+          ...
+        ]
+
+        On failure, add a description to self.results['sendspikes'] and return None.
+    """
+
+    full_url = self._model_base_url + '/model/' + self._model_name + '/population'
+    print('GETting from URL: ' + full_url)
+
+    response = requests.get(full_url, headers=self._headers)
+    print(response.status_code)
+    if response.status_code != 200:
+        self.results['sendspikes'] = 'Failed to read population for model ' + self._model_name + ': status ' + str(response.status_code)
+        return None
+    population = response.json()
+
+    full_url = self._model_base_url + '/model/' + self._model_name + '/deployment/' + self._deployment_name
+    print('GETting from URL: ' + full_url)
+
+    response = requests.get(full_url, headers=self._headers)
+    print(response.status_code)
+    if response.status_code != 200:
+        self.results['sendspikes'] = 'Failed to read deployment for model ' + self._model_name + ', deployment ' + self._deployment_name + ': status ' + str(response.status_code)
+        return None
+    deploymentEngines = response.json()
+
+    deployment = []
+    totalNeuronCount = 0
+    for i in range(len(population['templates'])):
+      template = population['templates'][i]
+      deploymentEngine = deploymentEngines[i]
+
+      neuronCount = 0
+      for name, value in template['indexes'].items():
+        neuronCount += value['count']
+
+      deployment.append({'engine': deploymentEngine, 'offset': totalNeuronCount, 'count': neuronCount })
+      totalNeuronCount += neuronCount
+    
+    return deployment
 
   def send_spikes(self, spikes):
     """ Send the spike sequence to a single engine, to be
         executed per the embedded spike ticks.
     """
+    deployment_map = self.get_deployment_map()
+
     self.results['sendspikes'] = 'success'
     success = True
-    print("***** Sending test spikes to engine")
-    for engine in self._engines:
-      with RealtimeManager(engine['name']) as realtimeManager:
-        if not realtimeManager.SendSpikes(spikes):
-          self.results['sendspikes'] = 'failed to send ' + str(len(spikes)) + ' spikes to engine ' + engine['name']
+    for population_index, deployment in enumerate(deployment_map):
+      print("***** Sending test spikes to engine " + deployment['engine'])
+      with RealtimeManager(deployment['engine']) as realtimeManager:
+        deployment_offset = deployment['offset']
+        deployment_count = deployment['count']
+        first_spike = next((index for index, spike in enumerate(spikes) if spike[1] >= deployment_offset), len(spikes))
+        last_spike = next((index for index, spike in enumerate(spikes) if spike[1] >= deployment_offset + deployment_count), len(spikes))
+        print('Sending spikes[' + str(first_spike) + ':' + str(last_spike) + '] to engine ' + deployment['engine'] + ', using population index ' + str(population_index))
+        engine_spikes = [[spike[0], spike[1]-deployment_offset] for spike in spikes[first_spike:last_spike]]
+        if not realtimeManager.SendSpikes(engine_spikes, population_index):
+          self.results['sendspikes'] = 'failed to send ' + str(len(spikes)) + ' spikes to engine ' + deployment['engine']
           success = False
           break
       print()

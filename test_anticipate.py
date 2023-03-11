@@ -53,10 +53,26 @@ def duration_per_tick(epochs, epoch):
 testdata = [
   ([{ 'name': 'Research4.lan', 'period': 10000 }], 50),
   ([{ 'name': 'Research4.lan', 'period': 2000 }], 50),
-  ([{ 'name': 'Research4.lan', 'period': 1000 }], 50)
+  ([{ 'name': 'Research4.lan', 'period': 1000 }], 50),
+  ([{ 'name': 'Research1.lan', 'period': 10000 }], 50),
+  ([{ 'name': 'Research1.lan', 'period': 2000 }], 50),
+  ([{ 'name': 'Research1.lan', 'period': 1000 }], 50),
+  ([{ 'name': 'Research1.lan', 'period': 10000 }, { 'name': 'Research4.lan', 'period': 10000 }], 50),
+  ([{ 'name': 'Research1.lan', 'period': 2000 }, { 'name': 'Research4.lan', 'period': 2000 }], 50),
+  ([{ 'name': 'Research1.lan', 'period': 1000 }, { 'name': 'Research4.lan', 'period': 1000 }], 50)
 ]
 
-testids = ["engine4_10ms", "engine4_2ms", "engine4_1ms"]
+testids = [
+  "engine4_10ms", 
+  "engine4_2ms", 
+  "engine4_1ms", 
+  "engine1_10ms", 
+  "engine1_2ms", 
+  "engine1_1ms", 
+  "engine1_4_10ms", 
+  "engine1_4_2ms", 
+  "engine1_4_1ms"
+]
 
 
 @pytest.mark.parametrize("test_engines,test_epochs", testdata, ids=testids)
