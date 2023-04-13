@@ -28,18 +28,20 @@ def templateNeuronCount(template):
     
     return totalCount
   
-def extract_monitor_neurons(neurons, filter_list=None):
+def extract_monitor_neurons(configuration, neurons, filter_list=None):
   monitor_neurons = []
 
   neurons_dict = neurons.__dict__
 
-  if filter_list:
-    for filter_neuron in filter_list:
-      if filter_neuron in neurons_dict:
-        monitor_neurons.append([filter_neuron, neurons_dict[filter_neuron]])
-  else:
-    for key, value in neurons_dict.items():
-      if not key.startswith('__') and not inspect.ismethod(value):
-        monitor_neurons.append([key, value])
+  for deployment in configuration.get_deployment_map():
+    deployment_offset =  + int(deployment['offset'])
+    if filter_list:
+      for filter_neuron in filter_list:
+        if filter_neuron in neurons_dict:
+          monitor_neurons.append([filter_neuron, neurons_dict[filter_neuron] + deployment_offset])
+    else:
+      for key, value in neurons_dict.items():
+        if not key.startswith('__') and not inspect.ismethod(value):
+          monitor_neurons.append([key, value + deployment_offset])
 
   return monitor_neurons

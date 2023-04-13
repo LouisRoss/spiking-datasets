@@ -6,13 +6,6 @@ from anticipate_data import NeuronAssignments
 from analysis.anticipate_record import AnticipateRun
 
 
-testEnginePeriod = 10000
-engines_1 = [{ 'name': 'Research1.lan', 'period': testEnginePeriod}]
-engines_4 = [{ 'name': 'Research4.lan', 'period': testEnginePeriod}]
-engines_1_4 = [{ 'name': 'Research1.lan', 'period': testEnginePeriod}, { 'name': 'Research4.lan', 'period': testEnginePeriod}]
-testEngine = 'Research4.lan'
-testEpochs = 50
-
 @pytest.fixture(scope="session")
 def config():
   return { 'engines': None, 'epochs': 0 }
@@ -117,7 +110,7 @@ class TestAnticipate:
     """ The AnticipateRun record should contain the correct number of epochs.
     """
     for epochs in record.records:
-      assert len(epochs) == testEpochs
+      assert len(epochs) == test_epochs
   
   def test_epochs_are_properly_separated(self, test_engines, test_epochs, record):
     """ The AnticipateRun record should show that epochs are separated by the correct number of ticks.

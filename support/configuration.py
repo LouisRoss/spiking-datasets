@@ -1,4 +1,5 @@
 import sys
+import os
 import json
 from pathlib import Path
 
@@ -76,6 +77,15 @@ class Configuration:
         # Path(record_path).mkdir(parents=True, exist_ok=True)
         return record_path
 
+    def get_deployment_map(self):
+      deployment_map = []
+      deployment_map_path = self.find_record_path() + '/DeploymentMap.json'
+      if os.path.exists(deployment_map_path):
+        with open(deployment_map_path) as f:
+            deployment_map = json.load(f)
+
+      return deployment_map
+    
     def resolve_neuron_index(self, position):
         return position[0] * self.width + position[1]
 

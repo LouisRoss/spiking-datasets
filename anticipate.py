@@ -1,3 +1,5 @@
+import os
+import glob
 from re import X
 
 from anticipate_data import template, spikePattern, NeuronAssignments
@@ -8,11 +10,11 @@ from clean_record import Cleaner
 from plot_record import plot_cleaned_run,plot_epochs
 
 engines_1 = [{ 'name': 'Research1.lan', 'period': 10000}]
-engines_4 = [{ 'name': 'Research4.lan', 'period': 10000}]
+engines_4 = [{ 'name': 'Research4.lan', 'period': 1000}]
 engines_1_4 = [{ 'name': 'Research1.lan', 'period': 10000}, { 'name': 'Research4.lan', 'period': 10000}]
 
 monitor_no_in = { 'I1', 'I2', 'Inh1', 'Inh2', 'N1', 'N2' }
-
+monitor_i_n = { 'I1', 'I2', 'N1', 'N2' }
 
 class Anticipate:
   def __init__(self, engines,  model='test', deployment='test', log_enable=False, record_enable=True, record_synapse_enable=True, record_activation=True, record_hypersensitive=True):
@@ -59,8 +61,26 @@ class Anticipate:
         self.plot()
 
   def plot(self):
-    is_trigger = lambda sample: sample['Neuron-Event-Type'] == 2 and sample['Neuron-Index'] == 0
-    cleaner = Cleaner(self.configuration, extract_monitor_neurons(NeuronAssignments, monitor_no_in), is_trigger)
+    record_path = self.configuration.find_record_path()
+    files = glob.glob(record_path + '/*csv')
+    for f in files:
+      os.remove(f)
+
+    files = glob.glob(record_path + '/*png')
+    for f in files:
+      os.remove(f)
+
+    deployments = self.configuration.get_deployment_map()
+    index_map = []
+    for deployment in deployments:
+      for index in range(deployment['count']):
+        while len(index_map) <= index:
+          index_map.append([])
+        index_map[index].append(index + deployment['offset'])
+
+    print(index_map)
+    is_trigger = lambda sample: sample['Neuron-Event-Type'] == 2 and sample['Neuron-Index'] in index_map[NeuronAssignments.In1]
+    cleaner = Cleaner(self.configuration, extract_monitor_neurons(self.configuration, NeuronAssignments, monitor_i_n), is_trigger)
     cleaner.clean_data()
 
     plot_cleaned_run(self.configuration)

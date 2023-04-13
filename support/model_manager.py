@@ -230,7 +230,7 @@ class ModelManager:
         time that a specified neuron should spike.
         The returned spikes sequence is suitable to be sent to send_spikes().
     """
-    tick = pitch
+    tick = 1500 + pitch
     spikes = []
     for i in range(repeat):
       for spike in pattern:
@@ -297,20 +297,22 @@ class ModelManager:
 
     self.results['sendspikes'] = 'success'
     success = True
+    population_spikes = []
+    for _ in range(len(deployment_map)):
+      population_spikes.append([])
+
+    for spike in spikes:
+      for population_index, deployment in enumerate(deployment_map):
+        if spike[1] >= deployment['offset'] and spike[1] < deployment['offset'] + deployment['count']:
+          population_spikes[population_index].append([spike[0], spike[1]-deployment['offset']])
+
     for population_index, deployment in enumerate(deployment_map):
       print("***** Sending test spikes to engine " + deployment['engine'])
       with RealtimeManager(deployment['engine']) as realtimeManager:
-        deployment_offset = deployment['offset']
-        deployment_count = deployment['count']
-        first_spike = next((index for index, spike in enumerate(spikes) if spike[1] >= deployment_offset), len(spikes))
-        last_spike = next((index for index, spike in enumerate(spikes) if spike[1] >= deployment_offset + deployment_count), len(spikes))
-        print('Sending spikes[' + str(first_spike) + ':' + str(last_spike) + '] to engine ' + deployment['engine'] + ', using population index ' + str(population_index))
-        engine_spikes = [[spike[0], spike[1]-deployment_offset] for spike in spikes[first_spike:last_spike]]
-        if not realtimeManager.SendSpikes(engine_spikes, population_index):
+        if not realtimeManager.SendSpikes(population_spikes[population_index], population_index):
           self.results['sendspikes'] = 'failed to send ' + str(len(spikes)) + ' spikes to engine ' + deployment['engine']
           success = False
           break
-      print()
     
     return success
 

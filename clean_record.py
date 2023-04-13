@@ -1,4 +1,7 @@
+import os
+import sys
 import copy
+import json
 import time
 import csv
 import re
@@ -23,54 +26,67 @@ class NeuronRecordType(Enum):
 
 
 class RecordFileParser:
-    def __init__(self, configuration, engine_path):
+    def __init__(self, configuration, deployment):
       self.configuration = configuration
-      self.engine_path = engine_path
+      self.record_path = self.configuration.find_record_path()
+      self.deployment_path = self.record_path + '/' + str(deployment['engine'])
+      self.deployment_offset = int(deployment['offset'])
       self.samples = []
       self.capacity = 0
       self.current = 0
-      self.first = True
       self.tick_offset = 0
 
     def create_parser(self):
+      print('Parsing record file at ' + str(self.deployment_path))
       record_file = 'ModelEngineRecord.csv'
       if 'RecordFile' in self.configuration.control:
           record_file = self.configuration.control['RecordFile']
 
-      self.samples = list(csv.DictReader(open(self.engine_path + '/' + record_file, newline='')))
+      self.samples = list(csv.DictReader(open(self.deployment_path + '/' + record_file, newline='')))
       self.current = 0
       self.capacity = len(self.samples)
 
     def at_end(self):
       return self.current >= self.capacity
     
-    def next(self, target_tick):
-        if self.first:
-            if target_tick <= 0:
-                self.tick_offset = 0
-            else:
-                tick = int(self.samples[self.current]['tick'])
-                self.tick_offset = target_tick - tick
-            self.first = False
+    def synchronize(self, target_tick):
+        if target_tick <= 0:
+            self.tick_offset = 0
         else:
-            if not self.at_end():
-                self.current += 1
+            tick = int(self.samples[self.current]['tick'])
+            self.tick_offset = target_tick - tick
+
+        return self.get_current_tick()
+
+    def next(self):
+        if not self.at_end():
+            self.current += 1
+
+        return self.get_current_tick()
 
     def get_current_sample(self):
         if self.at_end():
             return None
         
+        print('Sampling record from engine ' + self.deployment_path)
         sample = self.samples[self.current]
         return {
             'tick': int(sample['tick']) + self.tick_offset,
             'Neuron-Event-Type': int(sample['Neuron-Event-Type']),
-            'Neuron-Index': int(sample['Neuron-Index']),
+            'Neuron-Index': int(sample['Neuron-Index']) + self.deployment_offset,
             'Neuron-Activation': int(sample['Neuron-Activation']),
             'Hypersensitive': int(sample['Hypersensitive']),
             'Synapse-Index': int(sample['Synapse-Index']) if sample['Synapse-Index'] != 'N/A' else None,
             'Synapse-Strength': int(sample['Synapse-Strength']) if sample['Synapse-Strength'] != 'N/A' else None
         }
     
+    def get_current_tick(self):
+        current_tick = 0
+        if not self.at_end():
+            current_tick = int(self.samples[self.current]['tick']) + self.tick_offset
+
+        return current_tick
+
     def get_current_time(self):
         if self.at_end():
             return None
@@ -91,37 +107,36 @@ class RecordFileParser:
 class Records:
     def __init__(self, configuration):
       self.configuration = configuration
+      self.record_path = self.configuration.find_record_path()
       self.record_file_parsers = []
-      self.current_tick = -1
 
     def create_parsers(self):
-      record_path = self.configuration.find_record_path()
-      engine_paths = [path for path in Path(record_path).iterdir() if path.is_dir()]
-      for engine_path in engine_paths:
-          parser = RecordFileParser(self.configuration, str(engine_path))
+      starting_tick = 0
+
+      for deployment in self.configuration.get_deployment_map():
+          parser = RecordFileParser(self.configuration, deployment)
           parser.create_parser()
+          starting_tick = parser.synchronize(starting_tick)
           self.record_file_parsers.append(parser)
 
     def get_next_sample(self):
-        first_time = datetime(3000, 1, 1, 0, 0, 0)
+        first_tick = sys.maxsize
         first_parser = 0
         done = True
 
         for index, parser in enumerate(self.record_file_parsers):
             if not parser.at_end():
-                parser_first_time = parser.get_current_time()
-                if parser_first_time < first_time:
-                    first_time = parser_first_time
+                parser_current_tick = parser.get_current_tick()
+                if parser_current_tick < first_tick:
+                    first_tick = parser_current_tick
                     first_parser = index
                     done = False
 
         if done:
             return None
         
-        self.record_file_parsers[first_parser].next(self.current_tick)
         sample = self.record_file_parsers[first_parser].get_current_sample()
-        if sample:
-            self.current_tick = sample['tick']
+        self.record_file_parsers[first_parser].next()
         return sample
 
 
@@ -194,6 +209,7 @@ class Cleaner:
 
             sample = records.get_next_sample()
 
+        self.write_cleaned_epoch()
         self.write_cleaned_run()
 
     def generate_monitor_neurons(self):

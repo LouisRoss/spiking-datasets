@@ -44,7 +44,7 @@ class AnticipateRunner:
           if success:
             success = model.send_spikes(fullSpikePattern)
             if success:
-              success = model.run_for_ticks(200 + iterations * 100)
+              success = model.run_for_ticks(4000 + iterations * 100)
             self.measurements = model.undeploy()
       model.delete_model()
       
